@@ -589,7 +589,7 @@ for rect1, label in zip(p1, labels):
 ```
 <p align="center">
    <kbd>
-        <img src= "https://user-images.githubusercontent.com/93198237/150964826-88cb895c-5400-4973-8294-75092fc74609.png">
+        <img src= "https://user-images.githubusercontent.com/93198237/150965803-033efbd4-9d83-4de0-a4c9-7ac51d182ab9.png", width ="600" height="400">
     </kbd>
 </p>
 
