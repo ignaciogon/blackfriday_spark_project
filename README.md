@@ -640,6 +640,12 @@ plt.text(25.40, 119, "Black Friday", size=14, color='red')
 plt.title("Average characters per Day", size=20)
 ```
 
+<p align="center">
+   <kbd>
+        <img src= "https://user-images.githubusercontent.com/93198237/150966163-c076512d-3592-4eb0-8daa-0fa5cee15ce3.png", width ="600" height="400">
+    </kbd>
+</p>
+
 ### Average Emojis Used per Tweet per Day
 
 The scope of the last part of this notebook is to evaluate the usage of emojis through time, either per day and per hour. Basically to see if there is an increase in the usage while getting closer to _Black Friday_.
@@ -667,6 +673,12 @@ plt.text(25.40, 0.73, "Black Friday", size=14, color='red')
 plt.title("Average Emojis per Day", size=20)
 ```
 
+<p align="center">
+   <kbd>
+        <img src= "https://user-images.githubusercontent.com/93198237/150966246-e1b3c829-614d-4a76-ac5e-1bddcbdc862d.png", width ="600" height="400">
+    </kbd>
+</p>
+
 ### Emojis per Character per Hour
 
 ```python
@@ -693,6 +705,12 @@ plt.autoscale(enable=True, axis='both')
 plt.xticks(rotation=45, size=15)
 plt.title("Average Ratio of Emojis per Character per Hour", size=20)
 ```
+
+<p align="center">
+   <kbd>
+        <img src= "https://user-images.githubusercontent.com/93198237/150966312-97dce675-8603-4d2e-a346-c0a05bd3f3ec.png", width ="600" height="400">
+    </kbd>
+</p>
 
 <h1 align="center">
     <font size="15">
