@@ -506,8 +506,6 @@ Then using _folium_, this information can be illustrated on the map.
 Notice a funny insight, there is one marker that is located at _Guam Island_ which is in the middle of the Pacific Ocean.
 Another thing to point out is that, since the ingestion was mostly done on the rush hours of the American market, we see that most tweets were gathered with "US" as its _country code_.
 
-### Tweets per Country Map:
-The approach of the mapping helps to see where the users are supposed to be tweeting from. For this analysis the coordinates attribute was used Coordinates were saved in a table together with the country code (so that each location marker is labeled on the map). Then using folium, this information can be illustrated on the map. Notice a funny insight, there is one marker that is located at Guam Island which is in the middle of the Pacific Ocean. Another thing to point out is that, since the ingestion was mostly done on the rush hours of the American market, we see that most tweets were gathered with "US" as its country code.
 
 ```python
 #Select the tweets that don not have "None" values in the columns "coordinates" and "country_code", 
@@ -534,6 +532,11 @@ for point, key in zip(range(0, len(locationlist)), rows["country_code"].tolist()
     folium.Marker(locationlist[point], popup=key).add_to(map)
 map
 ```
+<p align="center">
+   <kbd>
+        <img src= "https://user-images.githubusercontent.com/67901472/148214377-c104ec29-9e4f-460d-b075-a8fcd9979bff.png" width="600" height="400">
+    </kbd>
+</p>
 
 ### Most Used Emojis:
 
@@ -685,12 +688,6 @@ plt.autoscale(enable=True, axis='both')
 plt.xticks(rotation=45, size=15)
 plt.title("Average Ratio of Emojis per Character per Hour", size=20)
 ```
-
-<p align="center">
-   <kbd>
-        <img src= "https://user-images.githubusercontent.com/67901472/148214377-c104ec29-9e4f-460d-b075-a8fcd9979bff.png" width="600" height="400">
-    </kbd>
-</p>
 
 <h1 align="center">
     <font size="15">
