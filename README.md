@@ -719,7 +719,6 @@ plt.title("Average Ratio of Emojis per Character per Hour", size=20)
 
 </h1>
 
-# Wrapping
 To conclude there is clear evidence that the presence users and tweets clearly increase in number oximating to _Black Friday_
 
 To conclude there is clear evidence that the activity on twitter related to the keywords: __#BlackFriday__, __BlackFriday__, __#blackfriday__, __blackfriday__, increased as _Black Friday_ weekend was approaching. 
