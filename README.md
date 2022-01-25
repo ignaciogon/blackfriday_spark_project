@@ -506,6 +506,185 @@ Then using _folium_, this information can be illustrated on the map.
 Notice a funny insight, there is one marker that is located at _Guam Island_ which is in the middle of the Pacific Ocean.
 Another thing to point out is that, since the ingestion was mostly done on the rush hours of the American market, we see that most tweets were gathered with "US" as its _country code_.
 
+### Tweets per Country Map:
+The approach of the mapping helps to see where the users are supposed to be tweeting from. For this analysis the coordinates attribute was used Coordinates were saved in a table together with the country code (so that each location marker is labeled on the map). Then using folium, this information can be illustrated on the map. Notice a funny insight, there is one marker that is located at Guam Island which is in the middle of the Pacific Ocean. Another thing to point out is that, since the ingestion was mostly done on the rush hours of the American market, we see that most tweets were gathered with "US" as its country code.
+
+```python
+#Select the tweets that don not have "None" values in the columns "coordinates" and "country_code", 
+#since they will add no value to our analysis
+tweet_sights = (tweets_raw
+                .select(["coordinates.coordinates", "place.country_code"]))
+
+#Now we extract the first value of the list of coordinates and save it as "latitude" 
+#and the second value as a new column named "longitude"
+tweet_sights = tweet_sights.select("coordinates",
+        col("coordinates").getItem(0).alias("latitude"),
+        col("coordinates").getItem(1).alias("longitude"),
+        col("country_code"))
+
+#Some rows had empty values which needed to be eliminated since they would add no value.
+tweet_map = tweet_sights.where((col("country_code") != '') & ((col("latitude") != np.nan)))
+rows = tweet_map.select(col("country_code").alias("country_code"), "longitude","latitude").toPandas()
+locationlist = tweet_map.select("longitude", "latitude").collect()
+
+#Finally we collect the two coordinates column into a list for display and loop over this list to add 
+#for every iteration a new location marker, labeled with the country code (which was also previously converted to list)
+map = folium.Map(location=[29.41670036315918, 0], zoom_start=2)
+for point, key in zip(range(0, len(locationlist)), rows["country_code"].tolist()):
+    folium.Marker(locationlist[point], popup=key).add_to(map)
+map
+```
+
+### Most Used Emojis:
+
+This section has its main focus to analyze the usage of emojis inside our data.
+* The groupby of emojis, was straightforward thanks to the emojis library, since it allows to filter out the emojis characters and count them.
+* Then, through the usage of the pyspark.sql library we were able to group by those _emojis_ and get the 10 most used emojis.
+* Then we can clearly observe on the barchart what _emojis_ were repeated the most during the ingestion period.
+
+```python
+#First, we will create a user defined function with the goal of counting the unique emojis that were used in the "text" column
+@udf("array<string>")
+def get_emojis_udf(s):
+    set = emojis.get(s)
+    return [*set, ]
+
+#Group by the emojis and count the rows through aggregate function, finally sort the values in descending order
+total_emojis = tweets_raw.select(sql.explode(get_emojis_udf("text")).alias("emoji"))\
+                    .groupBy("emoji")\
+                    .agg(count("*").alias("total"))\
+                    .sort(col("total").desc())\
+                    .limit(10).toPandas()
+
+#Plot the emojis in a barchart
+freqs = [301, 96, 53, 81, 42]
+labels = ['🔥', '🚨', '♥', '✨', '👀', '❤', '❗❗', '🎁', '👉', '😉']
+plt.figure(figsize=(15,10))
+p1 = plt.bar(total_emojis["emoji"], total_emojis["total"], color= ['#9AD9FE','#54BFEE','#34B3FE', '#01A0FE', '#0180CB', '#016098'])
+plt.xlabel("Emoji", size=15)
+plt.ylabel("Total Use", size=15)
+plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False) # labels along the bottom edge are off
+plt.ylim(0, plt.ylim()[1]+30)
+plt.title("Top 10 Most Used Emojis", size=20)
+
+# Make labels
+for rect1, label in zip(p1, labels):
+    height = rect1.get_height()
+    plt.annotate(
+        label,
+        (rect1.get_x() + rect1.get_width()/2, height+5),
+        ha="center",
+        va="bottom",
+        fontsize=25,
+        fontproperties=FontProperties(fname='seguiemj.ttf')
+    )
+```
+
+### Average Characters used per Tweet per Day
+
+```python
+## We will first create a user defined a user defined function with the goal of counting the number of emojis
+##used using the lengths and "emojis.get" functions
+@udf ("string")
+def get_num_emojis_udf(s):
+    num_emoji = int(len(emojis.get(s)))
+    return num_emoji
+
+## We will create another user defied function with the goal to count the number of characters in a variable using 
+##the length function
+@udf ("string")
+def get_num_char_udf(s):
+    num_char = int(len(s))
+    return num_char
+
+## we will create a new dataframe similar to the original dataframe however we will add 5 new columns which will 
+##have the number of emojis, number of characters, the ratio of emojis to characters, the day and hour.
+tweets_emoji = tweets_raw.withColumn("num_emoji", get_num_emojis_udf(col("text")))\
+                            .withColumn("num_char", get_num_char_udf("text"))\
+                            .withColumn("ratio", sql.expr("num_emoji / num_char"))\
+                            .withColumn("day", sql.dayofmonth("created_at"))\
+                            .withColumn("hour", sql.hour("created_at"))
+
+## From the last dataframe we will create another dataframe "emohi_pd" selecting only the new columns we created
+emoji_pd = tweets_emoji.select("id", "num_emoji", "num_char", "ratio", "day", "hour")
+
+## Using "emoji_pd" we will create a new dataframe "char_per_day" which will be a query group the results by "day" in
+##addition to using an aggregate fuction to average the "number of characters" in each tweet
+# we will then sort the average count in a descending order.
+char_per_day = emoji_pd.groupBy("day")\
+        .agg(avg("num_char").alias("avg_char"))\
+        .sort(col("avg_char").desc())\
+        .limit(10).toPandas()
+
+## Finally we will use matplotlib to plot the different days of ingestion and the number of characters of each tweet.
+plt.figure(figsize=(15,10))
+plt.bar(char_per_day["day"], char_per_day["avg_char"], color= ['#9AD9FE','#54BFEE','#34B3FE', '#01A0FE', '#0180CB', '#016098'])
+plt.xlabel("Day", size=15)
+plt.ylabel("Average Characters", size=15)
+plt.autoscale(enable=True, axis='both')
+plt.xticks(rotation=45, size=15)
+plt.text(25.40, 119, "Black Friday", size=14, color='red')
+plt.title("Average characters per Day", size=20)
+```
+
+### Average Emojis Used per Tweet per Day
+
+The scope of the last part of this notebook is to evaluate the usage of emojis through time, either per day and per hour. Basically to see if there is an increase in the usage while getting closer to _Black Friday_.
+To do so we will make use of our datetime converted *created_at* and subtract 6 hours, as the focus is set on the american market. That is why there is a need to create another user defined function. 
+
+```python
+## Using "emoji_pd" we will create a new dataframe "emoji_per_day" which will be a query grouping the results by "day" 
+##in addition to using an aggregate fuction to average the "num_of_emoji" in each tweet
+# we will then use the sort function to sort the average count in a descending order and 
+##limit the view to the top top using the "limit" function
+emoji_per_day = emoji_pd.groupBy("day")\
+        .agg(avg("num_emoji").alias("avg_emoji"))\
+        .sort(col("avg_emoji").desc())\
+        .limit(10).toPandas()
+
+## Finally we will use matplotlib to plot the different days of ingestion and the number of emojis of each tweet.
+
+plt.figure(figsize=(15,10))
+plt.bar(emoji_per_day["day"], emoji_per_day["avg_emoji"], color= ['#9AD9FE','#54BFEE','#34B3FE', '#01A0FE', '#0180CB', '#016098'])
+plt.xlabel("Day", size=15)
+plt.ylabel("Average Emojis", size=15)
+plt.autoscale(enable=True, axis='both')
+plt.xticks(rotation=45, size=15)
+plt.text(25.40, 0.73, "Black Friday", size=14, color='red')
+plt.title("Average Emojis per Day", size=20)
+```
+
+### Emojis per Character per Hour
+
+```python
+## Using "emoji_pd" we will create a new dataframe "emoji_pd_with_emoji" which will add a new column "hour_adj" 
+##which will contain the time adjuted to minus 6 hours since the US is the initial target market of this analysis
+emoji_pd_with_emoji = emoji_pd.withColumn("hour_adj", expr("hour - 6"))\
+                                .select("id", "hour_adj", "ratio")\
+                                .sort(col("ratio").desc())
+
+## Using "emoji_pd_with_emoji", we create a new dataframe called "avg_emoji" which will present the data 
+##grouped by "hour_adj" in additional to the "ratio" variable which we have previously created.
+## We sort the data based on the "hour_adj variable"
+avg_emoji = emoji_pd_with_emoji.groupBy("hour_adj")\
+        .agg(avg("ratio").alias("avg_ratio"))\
+        .sort((col("hour_adj").asc()))\
+        .toPandas()
+
+## Finally we will use matplotlib to plot the different hours of ingestion and the ratio of emojis
+plt.figure(figsize=(15, 10))
+plt.bar(avg_emoji["hour_adj"], avg_emoji["avg_ratio"], color= ['#9AD9FE','#54BFEE','#34B3FE', '#01A0FE', '#0180CB', '#016098'])
+plt.xlabel("Hour", size=15)
+plt.ylabel("Average Ratio of Emojis per Character", size=15)
+plt.autoscale(enable=True, axis='both')
+plt.xticks(rotation=45, size=15)
+plt.title("Average Ratio of Emojis per Character per Hour", size=20)
+```
 
 <p align="center">
    <kbd>
